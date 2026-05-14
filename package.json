@@ -1,0 +1,14 @@
+{
+  "name": "ares-control-maestro",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node server.js",
+    "telegram": "node lib/telegram.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "sql.js": "^1.10.0",
+    "mysql2": "^3.9.0"
+  }
+}

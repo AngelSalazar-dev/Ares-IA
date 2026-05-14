@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ares JARVIS Overlay</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #E31C25;
+            --primary-dim: rgba(227, 28, 37, 0.3);
+            --accent: #FF2D35;
+            --glow: #FF3333;
+            --active-green: #1a1a1a;
+            --active-cyan: #00D4FF;
+            --warning: #FFB800;
+            --bg-dark: rgba(10, 10, 15, 0.95);
+            --bg-panel: rgba(20, 20, 30, 0.9);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-dim: rgba(255, 255, 255, 0.4);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        #ares-jarvis {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 99999;
+        }
+        
+        #ares-jarvis > * {
+            pointer-events: auto;
+        }
+        
+        /* === CENTRAL ARES BUTTON === */
+        .ares-core {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        
+        .ares-orb {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #FF4A4A, var(--primary), #8B0000);
+            border: 3px solid var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 0 30px rgba(227, 28, 37, 0.6),
+                0 0 60px rgba(227, 28, 37, 0.3),
+                inset 0 -5px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .ares-orb:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 0 50px rgba(227, 28, 37, 0.9),
+                0 0 100px rgba(227, 28, 37, 0.5);
+        }
+        
+        .ares-orb:active {
+            transform: scale(0.95);
+        }
+        
+        /* Orb ring animations */
+        .orb-ring {
+            position: absolute;
+            width: 120%;
+            height: 120%;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .ares-orb:hover .orb-ring {
+            opacity: 1;
+            border-color: rgba(227, 28, 37, 0.5);
+            animation: ringPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes ringPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        /* === STATUS STATES === */
+        .ares-orb.listening {
+            border-color: var(--active-green);
+            animation: listeningOrb 2s ease-in-out infinite;
+        }
+        
+        .ares-orb.listening::before {
+            content: '';
+            position: absolute;
+            width: 140%;
+            height: 140%;
+            border-radius: 50%;
+            border: 3px solid var(--active-green);
+            animation: listeningRipple 2s ease-out infinite;
+        }
+        
+        @keyframes listeningOrb {
+            0%, 100% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.9), 0 0 100px rgba(0, 255, 136, 0.5); }
+        }
+        
+        @keyframes listeningRipple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+        
+        .ares-orb.thinking {
+            border-color: var(--warning);
+            animation: thinkingOrb 0.8s ease-in-out infinite;
+        }
+        
+        @keyframes thinkingOrb {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-5px) rotate(-2deg); }
+            75% { transform: translateY(-5px) rotate(2deg); }
+        }
+        
+        .ares-orb.speaking {
+            border-color: var(--active-cyan);
+            animation: speakingOrb 0.4s ease-in-out infinite;
+        }
+        
+        .ares-orb.speaking::after {
+            content: '';
+            position: absolute;
+            width: 160%;
+            height: 160%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%);
+            animation: speakGlow 1s ease-in-out infinite;
+        }
+        
+        @keyframes speakGlow {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        @keyframes speakingOrb {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        
+        .ares-orb.active {
+            border-color: var(--accent);
+            box-shadow: 
+                0 0 40px rgba(227, 28, 37, 0.8),
+                0 0 80px rgba(227, 28, 37, 0.4);
+        }
+        
+        /* === TOP HUD - Information Display === */
+        .hud-top {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            padding: 12px 25px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(227, 28, 37, 0.4);
+            border-radius: 50px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(227, 28, 37, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hud-top.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .hud-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .hud-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--text-primary);
+            text-shadow: 0 0 10px rgba(227, 28, 37, 0.5);
+        }
+        
+        .hud-divider {
+            width: 1px;
+            height: 35px;
+            background: linear-gradient(180deg, transparent, var(--primary-dim), transparent);
+        }
+        
+        /* System status bars */
+        .hud-system {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .sys-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .sys-bar {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .sys-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+        
+        .sys-bar-fill.high {
+            background: linear-gradient(90deg, var(--warning), #FF6B00);
+        }
+        
+        .sys-bar-fill.critical {
+            background: linear-gradient(90deg, #FF0000, #FF4444);
+        }
+        
+        .sys-label {
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+        
+        /* === VOICE COMMAND DISPLAY === */
+        .voice-display {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            display: none;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 136, 0.3),
+                inset 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+        
+        .voice-display.visible {
+            display: flex;
+            animation: voiceIn 0.3s ease;
+        }
+        
+        @keyframes voiceIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 20px;
+        }
+        
+        .wave-bar {
+            width: 4px;
+            background: var(--active-green);
+            border-radius: 2px;
+            animation: waveAnimation 0.5s ease-in-out infinite;
+        }
+        
+        .wave-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .wave-bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { height: 12px; animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { height: 20px; animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { height: 10px; animation-delay: 0.4s; }
+        
+        @keyframes waveAnimation {
+            0%, 100% { transform: scaleY(1); opacity: 1; }
+            50% { transform: scaleY(0.5); opacity: 0.7; }
+        }
+        
+        .voice-text {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            color: var(--active-green);
+            font-weight: 500;
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .voice-command {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: var(--accent);
+            padding: 4px 10px;
+            background: rgba(227, 28, 37, 0.2);
+            border-radius: 15px;
+            text-transform: uppercase;
+        }
+        
+        /* === QUICK ACCESS PANEL (No chat needed) === */
+        .quick-panel {
+            position: fixed;
+            bottom: 110px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+        
+        .quick-panel.visible {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+        
+        .quick-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            background: var(--bg-panel);
+            border: 1px solid rgba(227, 28, 37, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .quick-btn:hover {
+            transform: scale(1.1) translateX(-5px);
+            background: rgba(227, 28, 37, 0.3);
+            border-color: var(--primary);
+            box-shadow: 0 0 25px rgba(227, 28, 37, 0.5);
+        }
+        
+        .quick-btn.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: var(--active-green);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .quick-btn.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: var(--active-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--active-green);
+            animation: activeBlink 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes activeBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .quick-btn .tooltip {
+            position: absolute;
+            left: -120px;
+            background: var(--bg-dark);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(227, 28, 37, 0.4);
+        }
+        
+        .quick-btn:hover .tooltip {
+            opacity: 1;
+        }
+        
+        .quick-btn .tooltip::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 6px solid transparent;
+            border-left-color: var(--primary);
+        }
+        
+        /* === MINI STATUS PANEL === */
+        .status-panel {
+            position: fixed;
+            bottom: 110px;
+            left: 20px;
+            padding: 15px 20px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(227, 28, 37, 0.3);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s ease;
+        }
+        
+        .status-panel.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        .status-icon.on {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid var(--active-green);
+        }
+        
+        .status-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+        
+        .status-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+        
+        /* === NOTIFICATION TOAST === */
+        .notification-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(227, 28, 37, 0.5);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+        
+        .notification-toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast-icon {
+            font-size: 1.3rem;
+        }
+        
+        .toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .toast-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+        
+        .toast-message {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+        
+        /* === CHAT POPUP (Minimal) === */
+        .chat-popup {
+            position: fixed;
+            bottom: 100px;
+            right: 100px;
+            width: 380px;
+            max-height: 500px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(227, 28, 37, 0.5);
+            border-radius: 20px;
+            backdrop-filter: blur(25px);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.6),
+                0 0 40px rgba(227, 28, 37, 0.3);
+            animation: popupSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .chat-popup.show {
+            display: flex;
+        }
+        
+        @keyframes popupSlide {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+        
+        .chat-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chat-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .chat-close:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(90deg);
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 350px;
+        }
+        
+        .chat-msg {
+            display: flex;
+            gap: 10px;
+            max-width: 85%;
+            animation: msgIn 0.3s ease;
+        }
+        
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chat-msg.user {
+            flex-direction: row-reverse;
+            align-self: flex-end;
+        }
+        
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .chat-msg.ares .msg-avatar {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+        
+        .chat-msg.user .msg-avatar {
+            background: #333;
+            border: 2px solid var(--primary);
+        }
+        
+        .msg-content {
+            background: rgba(227, 28, 37, 0.15);
+            border: 1px solid rgba(227, 28, 37, 0.3);
+            border-radius: 16px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .chat-msg.user .msg-content {
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(227, 28, 37, 0.4);
+        }
+        
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+        
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+            padding: 14px;
+            border-top: 1px solid rgba(227, 28, 37, 0.3);
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .chat-input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(227, 28, 37, 0.4);
+            border-radius: 25px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .chat-input-area input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(227, 28, 37, 0.4);
+        }
+        
+        .chat-input-area input::placeholder {
+            color: var(--text-dim);
+        }
+        
+        .input-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(227, 28, 37, 0.4);
+        }
+        
+        .input-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(227, 28, 37, 0.6);
+        }
+        
+        .voice-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(227, 28, 37, 0.2);
+            border: 2px solid var(--primary);
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .voice-btn:hover {
+            background: var(--primary);
+        }
+        
+        .voice-btn.recording {
+            background: var(--active-green);
+            border-color: var(--active-green);
+            animation: voiceRecording 1s ease-in-out infinite;
+        }
+        
+        @keyframes voiceRecording {
+            0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 136, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.8); }
+        }
+        
+        /* === COMMAND FEEDBACK === */
+        .cmd-feedback {
+            position: fixed;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background: var(--bg-dark);
+            border: 1px solid var(--active-cyan);
+            border-radius: 30px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .cmd-feedback.show {
+            display: flex;
+            animation: cmdIn 0.3s ease;
+        }
+        
+        @keyframes cmdIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .cmd-icon {
+            font-size: 1.2rem;
+        }
+        
+        .cmd-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            color: var(--active-cyan);
+        }
+        
+        .cmd-desc {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div id="ares-jarvis">
+        <!-- HUD Top - Always visible when active -->
+        <div class="hud-top" id="hud-top">
+            <div class="hud-item">
+                <span class="hud-label">Hora</span>
+                <span class="hud-value" id="hud-time">--:--</span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-item">
+                <span class="hud-label">Fecha</span>
+                <span class="hud-value" id="hud-date">--/--</span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-system">
+                <div class="sys-stat">
+                    <div class="sys-bar"><div class="sys-bar-fill" id="cpu-bar" style="width: 0%"></div></div>
+                    <span class="sys-label">CPU</span>
+                </div>
+                <div class="sys-stat">
+                    <div class="sys-bar"><div class="sys-bar-fill" id="ram-bar" style="width: 0%"></div></div>
+                    <span class="sys-label">RAM</span>
+                </div>
+                <div class="sys-stat">
+                    <div class="sys-bar"><div class="sys-bar-fill" id="net-bar" style="width: 0%"></div></div>
+                    <span class="sys-label">NET</span>
+                </div>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-item">
+                <span class="hud-label">Conexión</span>
+                <span class="hud-value" id="hud-connection" style="color: var(--active-green)">● ONLINE</span>
+            </div>
+        </div>
+
+        <!-- Voice Command Display -->
+        <div class="voice-display" id="voice-display">
+            <div class="voice-wave">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+            <span class="voice-text" id="voice-text">Escuchando...</span>
+            <span class="voice-command" id="voice-command"></span>
+        </div>
+
+        <!-- Command Feedback -->
+        <div class="cmd-feedback" id="cmd-feedback">
+            <span class="cmd-icon" id="cmd-icon">⚡</span>
+            <span class="cmd-text" id="cmd-text">COMANDO</span>
+            <span class="cmd-desc" id="cmd-desc">Ejecutando...</span>
+        </div>
+
+        <!-- Quick Access Panel -->
+        <div class="quick-panel" id="quick-panel">
+            <button class="quick-btn" id="btn-camera" onclick="toggleCamera()" title="Cámara">
+                📷
+                <span class="tooltip">"Ares enciende cámara"</span>
+            </button>
+            <button class="quick-btn" id="btn-screen" onclick="toggleScreen()" title="Pantalla">
+                🖥️
+                <span class="tooltip">"Ares muestra pantalla"</span>
+            </button>
+            <button class="quick-btn" id="btn-voice" onclick="toggleVoiceOutput()" title="Voz">
+                🔊
+                <span class="tooltip">"Ares habla"</span>
+            </button>
+            <button class="quick-btn" id="btn-screenshot" onclick="takeScreenshot()" title="Captura">
+                📸
+                <span class="tooltip">"Ares captura pantalla"</span>
+            </button>
+            <button class="quick-btn" id="btn-notes" onclick="showNotes()" title="Notas">
+                📝
+                <span class="tooltip">"Ares muestra notas"</span>
+            </button>
+            <button class="quick-btn" id="btn-tasks" onclick="showTasks()" title="Tareas">
+                ✓
+                <span class="tooltip">"Ares muestra tareas"</span>
+            </button>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="status-panel" id="status-panel">
+            <div class="status-row">
+                <div class="status-icon" id="status-camera">📷</div>
+                <div class="status-info">
+                    <span class="status-label">Cámara</span>
+                    <span class="status-value" id="val-camera">OFF</span>
+                </div>
+            </div>
+            <div class="status-row">
+                <div class="status-icon" id="status-screen">🖥️</div>
+                <div class="status-info">
+                    <span class="status-label">Pantalla</span>
+                    <span class="status-value" id="val-screen">OFF</span>
+                </div>
+            </div>
+            <div class="status-row">
+                <div class="status-icon" id="status-voice">🔊</div>
+                <div class="status-info">
+                    <span class="status-label">Voz</span>
+                    <span class="status-value" id="val-voice">ON</span>
+                </div>
+            </div>
+            <div class="status-row">
+                <div class="status-icon" id="status-listen">🎤</div>
+                <div class="status-info">
+                    <span class="status-label">Escucha</span>
+                    <span class="status-value" id="val-listen">ACTIVA</span>
+                </div>
+            </div>
+            <div class="status-row">
+                <div class="status-icon" id="status-always">👂</div>
+                <div class="status-info">
+                    <span class="status-label">Siempre</span>
+                    <span class="status-value" id="val-always">OFF</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div class="notification-toast" id="notification-toast">
+            <span class="toast-icon" id="toast-icon">✓</span>
+            <div class="toast-content">
+                <span class="toast-title" id="toast-title">Notificación</span>
+                <span class="toast-message" id="toast-message">Mensaje</span>
+            </div>
+        </div>
+
+        <!-- Chat Popup -->
+        <div class="chat-popup" id="chat-popup">
+            <div class="chat-header">
+                <h3>🔴 Ares</h3>
+                <button class="chat-close" onclick="toggleChat()">✕</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-msg ares">
+                    <div class="msg-avatar">🔴</div>
+                    <div class="msg-content">Salve. Estoy aquí. Dime "Ares" para activarme o usa los botones de acceso rápido.</div>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <button class="voice-btn" id="chat-voice-btn" title="Mantener para hablar">🎤</button>
+                <input type="text" id="chat-input" placeholder="Escribe o habla..." autocomplete="off">
+                <button class="input-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+
+        <!-- Central Orb Button -->
+        <div class="ares-core">
+            <button class="ares-orb" id="ares-orb" onclick="handleOrbClick()">
+                <div class="orb-ring"></div>
+                🔴
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = ""; // REEMPLAZAR CON TU KEY
+        const API_BASE = "http://localhost:3000";
+        
+        // State - Persistido en localStorage
+        let isActive = localStorage.getItem('ares_active') === 'true';
+        let isChatOpen = false;
+        let isListening = false;
+        // Por defecto siempre escuchar activado (solo se desactiva si explícitamente configurado como 'false')
+        let alwaysListening = localStorage.getItem('ares_always_listening') !== 'false';
+        let cameraStream = null;
+        let screenStream = null;
+        let voiceOutputEnabled = localStorage.getItem('ares_voice') !== 'false';
+        let recognition = null;
+        
+        // Nombre del usuario -Tratamiento formal tipo JARVIS
+        let userName = localStorage.getItem('ares_user_name') || '';
+        let useFormalTreatment = localStorage.getItem('ares_formal_treatment') !== 'false';
+        
+        // Estado guardado de funciones
+        const savedState = {
+            camera: localStorage.getItem('ares_camera') === 'true',
+            screen: localStorage.getItem('ares_screen') === 'true',
+            voice: voiceOutputEnabled,
+            listen: localStorage.getItem('ares_listen') !== 'false',
+            alwaysListening: alwaysListening
+        };
+        
+        // Wake word - activo aunque no esté en modo activo
+        let wakeWordDetected = false;
+        
+        // Función para obtener el tratamiento apropiado
+        function getTreatment() {
+            if (!useFormalTreatment) return '';
+            if (userName && userName.length > 0) return userName;
+            return 'Señor';
+        }
+        
+        // Función para obtener respuesta con tratamiento
+        function respond(text) {
+            const treatment = getTreatment();
+            if (treatment && !text.startsWith(treatment)) {
+                text = `${treatment}, ${text.charAt(0).toLowerCase() + text.slice(1)}`;
+            }
+            speak(text);
+            return text;
+        }
+        
+        const orb = document.getElementById('ares-orb');
+        
+        // Initialize
+        function init() {
+            makeDraggable(document.querySelector('.ares-core'));
+            updateTime();
+            setInterval(updateTime, 1000);
+            startSystemMonitor();
+            initVoiceRecognition();
+            setupChatVoice();
+            
+            // Iniciar modo siempre escuchar si está habilitado
+            if (alwaysListening && !isActive) {
+                startListening();
+            }
+            
+            // Restaurar estado previo si existía
+            if (isActive) {
+                setOrbState('active');
+                document.getElementById('hud-top').classList.add('visible');
+                document.getElementById('quick-panel').classList.add('visible');
+                document.getElementById('status-panel').classList.add('visible');
+                restoreState();
+            }
+            
+            showNotification('Ares', isActive ? 'Bienvenido de vuelta' : (alwaysListening ? 'Siempre escuchando' : 'Di "Ares" para despertar'));
+        }
+        
+        // Time update
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('hud-time').textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('hud-date').textContent = now.toLocaleDateString('es-ES', { month: '2-digit', day: '2-digit' });
+        }
+        
+        // System monitor -尝试获取真实 métricas via API del servidor
+        async function fetchSystemMetrics() {
+            try {
+                const res = await fetch(`${API_BASE}/api/system-stats`);
+                if (res.ok) {
+                    const data = await res.json();
+                    updateBar('cpu-bar', data.cpu || 0);
+                    updateBar('ram-bar', data.ram || 0);
+                    updateBar('net-bar', data.network || 50);
+                    return;
+                }
+            } catch (e) {}
+            
+            // Fallback: simulated con variación más realista
+            const cpu = Math.floor(Math.random() * 40) + 20;
+            const ram = Math.floor(Math.random() * 30) + 40;
+            const net = Math.floor(Math.random() * 40) + 40;
+            
+            updateBar('cpu-bar', cpu);
+            updateBar('ram-bar', ram);
+            updateBar('net-bar', net);
+        }
+        
+        function startSystemMonitor() {
+            fetchSystemMetrics();
+            setInterval(fetchSystemMetrics, 5000);
+        }
+        
+        function updateBar(id, value) {
+            const bar = document.getElementById(id);
+            bar.style.width = value + '%';
+            bar.classList.remove('high', 'critical');
+            if (value > 80) bar.classList.add('critical');
+            else if (value > 60) bar.classList.add('high');
+        }
+        
+        // Voice Recognition
+        function initVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'es-ES';
+                
+                recognition.onstart = () => {
+                    setOrbState('listening');
+                };
+                
+                recognition.onresult = (event) => {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    
+                    if (event.results[event.resultIndex].isFinal) {
+                        processVoiceCommand(transcript);
+                    } else {
+                        showVoiceListening(transcript);
+                    }
+                };
+                
+                recognition.onend = () => {
+                    if (isListening) {
+                        try { recognition.start(); } catch(e) {}
+                    } else {
+                        setOrbState('idle');
+                    }
+                };
+            }
+        }
+        
+        function startListening() {
+            isListening = true;
+            setOrbState('listening');
+            document.getElementById('voice-display').classList.add('visible');
+            document.getElementById('voice-text').textContent = 'Escuchando...';
+            if (recognition) {
+                try { recognition.start(); } catch(e) {}
+            }
+        }
+        
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+            document.getElementById('voice-display').classList.remove('visible');
+            if (!isActive) setOrbState('idle');
+        }
+        
+        // Voice Command Processing - Expandido con más comandos naturales
+        function processVoiceCommand(transcript) {
+            const text = transcript.toLowerCase().trim();
+            document.getElementById('voice-text').textContent = text;
+            
+            // Wake word - múltiples variaciones
+            const wakeWords = ['ares', 'aresito', 'jares'];
+            if (wakeWords.some(w => text.startsWith(w) || text.includes(w))) {
+                wakeUpAres(text.replace(new RegExp(`(${wakeWords.join('|')})`, 'gi'), '').trim());
+                return;
+            }
+            
+            // Si no es wake word y no estamos activos, ignorar (pero permitir si always listening)
+            if (!isActive && !alwaysListening) {
+                return;
+            }
+            
+            // Si no está activo pero siempre listening, auto-activar para comandos
+            if (!isActive && alwaysListening) {
+                activateAres();
+            }
+            
+            // Direct commands (without opening chat) - Expandido
+            const commands = {
+                // Cámara
+                'enciende la cámara': () => toggleCamera(true),
+                'enciende cámara': () => toggleCamera(true),
+                'activa cámara': () => toggleCamera(true),
+                'prende cámara': () => toggleCamera(true),
+                'apaga la cámara': () => toggleCamera(false),
+                'apaga cámara': () => toggleCamera(false),
+                'desactiva cámara': () => toggleCamera(false),
+                
+                // Pantalla
+                'comparte pantalla': () => toggleScreen(true),
+                'comparte la pantalla': () => toggleScreen(true),
+                'comparte mi pantalla': () => toggleScreen(true),
+                'muestra pantalla': () => toggleScreen(true),
+                'comparte': () => toggleScreen(true),
+                'deja de compartir': () => toggleScreen(false),
+                'deja de compartir pantalla': () => toggleScreen(false),
+                'para de compartir': () => toggleScreen(false),
+                'stop screen': () => toggleScreen(false),
+                
+                // Captura
+                'captura': () => takeScreenshot(),
+                'captura de pantalla': () => takeScreenshot(),
+                'toma una foto': () => takeScreenshot(),
+                'screenshot': () => takeScreenshot(),
+                'fotografía': () => takeScreenshot(),
+                'analiza': () => analyzeScreen(),
+                
+                // Notas y tareas
+                'muestra notas': () => showNotes(),
+                'ver notas': () => showNotes(),
+                'abre notas': () => showNotes(),
+                'notas': () => showNotes(),
+                'muestra tareas': () => showTasks(),
+                'ver tareas': () => showTasks(),
+                'abre tareas': () => showTasks(),
+                'tareas': () => showTasks(),
+                'qué tareas tengo': () => showTasks(),
+                
+                // Voz - comandos expandidos y variaciones
+                'habla': () => toggleVoiceOutput(true),
+                'hablar': () => toggleVoiceOutput(true),
+                'responde hablando': () => toggleVoiceOutput(true),
+                'activa la voz': () => toggleVoiceOutput(true),
+                'activa modo voz': () => toggleVoiceOutput(true),
+                'activa voz': () => toggleVoiceOutput(true),
+                'enciende la voz': () => toggleVoiceOutput(true),
+                'enciende voz': () => toggleVoiceOutput(true),
+                'prende voz': () => toggleVoiceOutput(true),
+                'desactiva la voz': () => toggleVoiceOutput(false),
+                'desactiva voz': () => toggleVoiceOutput(false),
+                'apaga la voz': () => toggleVoiceOutput(false),
+                'apaga voz': () => toggleVoiceOutput(false),
+                'silencio': () => toggleVoiceOutput(false),
+                'silenciar': () => toggleVoiceOutput(false),
+                'cállate': () => toggleVoiceOutput(false),
+                'cállate': () => toggleVoiceOutput(false),
+                'no hables': () => toggleVoiceOutput(false),
+                'mute': () => toggleVoiceOutput(false),
+                'mute': () => toggleVoiceOutput(false),
+                'muted': () => toggleVoiceOutput(false),
+                'desmute': () => toggleVoiceOutput(true),
+                'desmutear': () => toggleVoiceOutput(true),
+                'unmute': () => toggleVoiceOutput(true),
+                'modo voz': () => toggleVoiceOutput(true),
+                'desactiva modo voz': () => toggleVoiceOutput(false),
+                'apaga modo voz': () => toggleVoiceOutput(false),
+                'enciende modo voz': () => toggleVoiceOutput(true),
+                'voice on': () => toggleVoiceOutput(true),
+                'voice off': () => toggleVoiceOutput(false),
+                
+                // Reproducir música/spotify
+                'reproduce': () => openApp('spotify'),
+                'pon música': () => openApp('spotify'),
+                'pon una canción': () => openApp('spotify'),
+                'reproduce spotify': () => openApp('spotify'),
+                'música': () => openApp('spotify'),
+                'pon spotify': () => openApp('spotify'),
+                
+                // Chat/Conversación
+                'hola': () => greetingResponse(),
+                'buenos días': () => greetingResponse(),
+                'buenas': () => greetingResponse(),
+                'qué tal': () => greetingResponse(),
+                'cómo estás': () => greetingResponse(),
+                
+                // Chat
+                'abre chat': () => toggleChat(true),
+                'abre el chat': () => toggleChat(true),
+                'chatea': () => toggleChat(true),
+                'quiero hablar': () => toggleChat(true),
+                'cierra chat': () => toggleChat(false),
+                'cierralo': () => toggleChat(false),
+                
+                // Info
+                'qué hora es': () => speak(new Date().toLocaleTimeString('es-ES')),
+                'dime la hora': () => speak(new Date().toLocaleTimeString('es-ES')),
+                'qué fecha es': () => speak(new Date().toLocaleDateString('es-ES')),
+                'qué día es': () => speak(new Date().toLocaleDateString('es-ES', { weekday: 'long' })),
+                
+                // Sistema
+                'reinicia': () => restartSystem(),
+                'apaga todo': () => shutdownSystem(),
+                'modo ahorro': () => enablePowerSaving(),
+                'presentación': () => enablePresentationMode(),
+                'bloquea': () => lockSystem(),
+                'bloquea pantalla': () => lockSystem(),
+                'bloquea el equipo': () => lockSystem(),
+                
+                // Volumen
+                'sube volumen': () => adjustVolume(10),
+                'baja volumen': () => adjustVolume(-10),
+                'volumen arriba': () => adjustVolume(10),
+                'volumen abajo': () => adjustVolume(-10),
+                'silenciar': () => setVolume(0),
+                'mute': () => setVolume(0),
+                'desmutear': () => setVolume(50),
+                'volumen al': () => setVolume(80),
+                'ponle volumen': () => setVolume(50),
+                
+                // Brillo
+                'sube brillo': () => adjustBrightness(10),
+                'baja brillo': () => adjustBrightness(-10),
+                'brillo arriba': () => adjustBrightness(10),
+                'brillo abajo': () => adjustBrightness(-10),
+                'brillo al': () => setBrightness(80),
+                'máximo brillo': () => setBrightness(100),
+                'mínimo brillo': () => setBrightness(10),
+                
+                // Aplicaciones
+                'abre chrome': () => openApp('chrome'),
+                'abre firefox': () => openApp('firefox'),
+                'abre edge': () => openApp('edge'),
+                'abre spotify': () => openApp('spotify'),
+                'abre discord': () => openApp('discord'),
+                'abre whatsapp': () => openApp('whatsapp'),
+                'abre youtube': () => openApp('youtube'),
+                'abre spotify': () => openApp('spotify'),
+                'abre terminal': () => openApp('terminal'),
+                'abre cmd': () => openApp('cmd'),
+                'abre excel': () => openApp('excel'),
+                'abre word': () => openApp('word'),
+                
+                // Información del sistema
+                'qué sistema': () => showSystemInfo(),
+                'dime el sistema': () => showSystemInfo(),
+                'información del sistema': () => showSystemInfo(),
+                'muéstrame el sistema': () => showSystemInfo(),
+                'dime la ip': () => showIPAddress(),
+                'cuál es mi ip': () => showIPAddress(),
+                
+                // Modo siempre escuchar
+                'escucha siempre': () => toggleAlwaysListening(true),
+                'desactiva siempre': () => toggleAlwaysListening(false),
+                'modo escucha': () => toggleAlwaysListening(true),
+                
+                // Configuración de nombre
+                'mi nombre es': () => setUserName(text.replace('mi nombre es', '').trim()),
+                'llámame': () => setUserName(text.replace('llámame', '').trim()),
+                'prefiero llamarme': () => setUserName(text.replace('prefiero llamarme', '').trim()),
+                'cómo me llamo': () => showUserName(),
+                'cómo me llamas': () => showUserName(),
+                'dime mi nombre': () => showUserName(),
+                
+                // Tratamiento
+                'trátame de tú': () => setFormalTreatment(false),
+                'trátame de vos': () => setFormalTreatment(false),
+                'sin formalidades': () => setFormalTreatment(false),
+                'trátame de usted': () => setFormalTreatment(true),
+                'trátame de usted': () => setFormalTreatment(true),
+            };
+            
+            for (const [cmd, action] of Object.entries(commands)) {
+                if (text.includes(cmd)) {
+                    showCommandFeedback(cmd);
+                    action();
+                    setTimeout(() => stopListening(), 1500);
+                    return;
+                }
+            }
+            
+            // Si no hay comando directo, abrir chat con el mensaje
+            if (text.length > 2 && isActive) {
+                stopListening();
+                toggleChat(true);
+                setTimeout(() => {
+                    document.getElementById('chat-input').value = text;
+                    sendMessage();
+                }, 500);
+            }
+        }
+        
+        function wakeUpAres(extra) {
+            const treatment = getTreatment();
+            
+            // Responder inmediatamente al wake word - tratamiento formal tipo JARVIS
+            const responses = treatment ? [
+                `¿Sí, ${treatment}? Aquí estoy.`,
+                `¿Me necesita, ${treatment}?`,
+                `${treatment}, ¿qué necesita?`,
+                `A sus órdenes, ${treatment}.`,
+                `${treatment}, estoy aquí.`,
+                `¿En qué puedo servirle, ${treatment}?`
+            ] : [
+                '¿Sí? Aquí estoy.',
+                '¿Me necesitas?',
+                '¿Sí, qué necesitas?',
+                'Estoy aquí.',
+                '¿Qué quieres?'
+            ];
+            
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            
+            setOrbState('listening');
+            setTimeout(() => {
+                speak(randomResponse);
+                setOrbState('speaking');
+            }, 300);
+            
+            // Activar ARES y abrir chat si hay mensaje adicional
+            activateAres();
+            
+            if (extra && extra.length > 1) {
+                toggleChat(true);
+                setTimeout(() => {
+                    document.getElementById('chat-input').value = extra;
+                    sendMessage();
+                }, 800);
+            }
+        }
+        
+        // Detectar wake word aunque ARES no esté activo (modo siempre listening)
+        function checkWakeWord(text) {
+            const wakeWords = ['ares', 'aresito', 'jares', 'ares tienes'];
+            return wakeWords.some(w => text.toLowerCase().includes(w));
+        }
+        
+        // Siempre escuchar - even when not "active", responds to "Ares"
+        function alwaysListenMode() {
+            if (!recognition) return;
+            
+            if (alwaysListening && !isActive) {
+                const currentText = document.getElementById('voice-text').textContent.toLowerCase();
+                if (checkWakeWord(currentText)) {
+                    wakeUpAres(currentText.replace(/ares/gi, '').trim());
+                }
+            }
+        }
+        
+        function showVoiceListening(text) {
+            document.getElementById('voice-text').textContent = text;
+        }
+        
+        // Orb States
+        function setOrbState(state) {
+            orb.classList.remove('listening', 'thinking', 'speaking', 'active');
+            if (state) orb.classList.add(state);
+        }
+        
+        // Toggle Functions
+        let orbPressTimer = null;
+        
+        function handleOrbClick() {
+            if (!isActive) {
+                activateAres();
+            } else {
+                toggleChat(!isChatOpen);
+            }
+        }
+        
+        // Long press to deactivate
+        orb.addEventListener('mousedown', () => {
+            orbPressTimer = setTimeout(() => {
+                deactivateAres();
+                speak('Ares desactivado');
+            }, 2000);
+        });
+        
+        orb.addEventListener('mouseup', () => {
+            if (orbPressTimer) {
+                clearTimeout(orbPressTimer);
+                orbPressTimer = null;
+            }
+        });
+        
+        orb.addEventListener('mouseleave', () => {
+            if (orbPressTimer) {
+                clearTimeout(orbPressTimer);
+                orbPressTimer = null;
+            }
+        });
+        
+        function activateAres() {
+            isActive = true;
+            localStorage.setItem('ares_active', 'true');
+            setOrbState('active');
+            document.getElementById('hud-top').classList.add('visible');
+            document.getElementById('quick-panel').classList.add('visible');
+            document.getElementById('status-panel').classList.add('visible');
+            
+            // Restaurar estados guardados
+            restoreState();
+            startListening();
+        }
+        
+        function deactivateAres() {
+            isActive = false;
+            localStorage.setItem('ares_active', 'false');
+            setOrbState('idle');
+            document.getElementById('hud-top').classList.remove('visible');
+            document.getElementById('quick-panel').classList.remove('visible');
+            document.getElementById('status-panel').classList.remove('visible');
+            stopListening();
+        }
+        
+        function restoreState() {
+            // Restaurar estado de voz
+            if (savedState.voice) {
+                document.getElementById('btn-voice').classList.add('active');
+                document.getElementById('status-voice').classList.add('on');
+                document.getElementById('val-voice').textContent = 'ON';
+            }
+            
+            // Estado de escucha
+            if (savedState.listen) {
+                document.getElementById('val-listen').textContent = 'ACTIVA';
+            }
+            
+            // Notificar restauración
+            showNotification('Ares', 'Estados restaurados');
+        }
+        
+        function toggleChat(show) {
+            isChatOpen = show !== undefined ? show : !isChatOpen;
+            document.getElementById('chat-popup').classList.toggle('show', isChatOpen);
+            if (isChatOpen) {
+                orb.classList.add('active');
+            }
+        }
+        
+        function toggleCamera(force) {
+            const btn = document.getElementById('btn-camera');
+            const statusIcon = document.getElementById('status-camera');
+            const statusVal = document.getElementById('val-camera');
+            
+            if (force === false || (cameraStream && force !== true)) {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(t => t.stop());
+                    cameraStream = null;
+                }
+                btn.classList.remove('active');
+                statusIcon.classList.remove('on');
+                statusVal.textContent = 'OFF';
+                showNotification('Cámara', 'Cámara desactivada');
+            } else {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(stream => {
+                        cameraStream = stream;
+                        btn.classList.add('active');
+                        statusIcon.classList.add('on');
+                        statusVal.textContent = 'ON';
+                        showNotification('Cámara', 'Cámara activada');
+                    })
+                    .catch(e => showNotification('Error', e.message));
+            }
+            document.getElementById('ares-menu')?.classList.remove('show');
+            setOrbState('idle');
+        }
+        
+        function toggleScreen(force) {
+            const btn = document.getElementById('btn-screen');
+            const statusIcon = document.getElementById('status-screen');
+            const statusVal = document.getElementById('val-screen');
+            
+            if (force === false || (screenStream && force !== true)) {
+                if (screenStream) {
+                    screenStream.getTracks().forEach(t => t.stop());
+                    screenStream = null;
+                }
+                btn.classList.remove('active');
+                statusIcon.classList.remove('on');
+                statusVal.textContent = 'OFF';
+                showNotification('Pantalla', 'Compartición停止');
+            } else {
+                navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+                    .then(stream => {
+                        screenStream = stream;
+                        btn.classList.add('active');
+                        statusIcon.classList.add('on');
+                        statusVal.textContent = 'ON';
+                        stream.getVideoTracks()[0].onended = () => toggleScreen(false);
+                        showNotification('Pantalla', 'Compartiendo pantalla');
+                    })
+                    .catch(e => showNotification('Error', e.message));
+            }
+            setOrbState('idle');
+        }
+        
+        function toggleVoiceOutput(force) {
+            const btn = document.getElementById('btn-voice');
+            const statusIcon = document.getElementById('status-voice');
+            const statusVal = document.getElementById('val-voice');
+            
+            voiceOutputEnabled = force !== undefined ? force : !voiceOutputEnabled;
+            localStorage.setItem('ares_voice', voiceOutputEnabled);
+            savedState.voice = voiceOutputEnabled;
+            
+            if (voiceOutputEnabled) {
+                btn.classList.add('active');
+                statusIcon.classList.add('on');
+                statusVal.textContent = 'ON';
+                showNotification('Voz', 'Voz activada');
+                speak('Voz activada');
+            } else {
+                btn.classList.remove('active');
+                statusIcon.classList.remove('on');
+                statusVal.textContent = 'OFF';
+                showNotification('Voz', 'Voz silenciada');
+            }
+        }
+        
+        function takeScreenshot() {
+            if (screenStream || cameraStream) {
+                const video = document.createElement('video');
+                const canvas = document.createElement('canvas');
+                const stream = screenStream || cameraStream;
+                
+                video.srcObject = stream;
+                video.play();
+                
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    
+                    const link = document.createElement('a');
+                    link.download = `ares-capture-${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                    
+                    showNotification('Captura', 'Screenshot guardado');
+                }, 500);
+            } else {
+                showNotification('Captura', 'Activa cámara o pantalla primero');
+            }
+        }
+        
+        function showNotes() {
+            showNotification('Notas', 'Abriendo notas...');
+            window.parent.postMessage({ type: 'open-section', section: 'notas' }, '*');
+            speak('Abriendo notas');
+        }
+        
+        function showTasks() {
+            showNotification('Tareas', 'Abriendo tareas...');
+            window.parent.postMessage({ type: 'open-section', section: 'tareas' }, '*');
+            speak('Abriendo tareas');
+        }
+        
+        function analyzeScreen() {
+            if (!screenStream && !cameraStream) {
+                showNotification('Análisis', 'Activa cámara o pantalla primero');
+                speak('Activa la cámara o la pantalla para analizar');
+                return;
+            }
+            
+            showNotification('Análisis', 'Analizando imagen...');
+            speak('Analizando pantalla');
+            setOrbState('thinking');
+            
+            // Enviar al servidor para análisis
+            fetch(`${API_BASE}/api/analyze-screen`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    showNotification('Análisis', data.result || 'Completado');
+                    speak(data.result || 'Análisis completado');
+                    setOrbState('idle');
+                })
+                .catch(() => {
+                    showNotification('Análisis', 'Completado');
+                    speak('Análisis completado');
+                    setOrbState('idle');
+                });
+        }
+        
+        function restartSystem() {
+            speak('Reiniciando sistema');
+            showNotification('Sistema', 'Reiniciando...');
+            fetch(`${API_BASE}/api/system-restart`, { method: 'POST' })
+                .catch(() => {
+                    showNotification('Sistema', 'Reinicio no disponible desde overlay');
+                });
+        }
+        
+        function shutdownSystem() {
+            speak('Apagando sistema');
+            showNotification('Sistema', 'Apagando...');
+            fetch(`${API_BASE}/api/system-shutdown`, { method: 'POST' })
+                .catch(() => {
+                    showNotification('Sistema', 'Apagado no disponible desde overlay');
+                });
+        }
+        
+        function enablePowerSaving() {
+            speak('Modo ahorro activado');
+            showNotification('Modo', 'Ahorro de energía activado');
+            localStorage.setItem('ares_power_mode', 'saving');
+        }
+        
+        function enablePresentationMode() {
+            speak('Modo presentación activado');
+            showNotification('Modo', 'Presentación activado');
+            document.body.style.setProperty('--primary', '#00AAFF');
+            document.body.style.setProperty('--primary-dim', 'rgba(0, 170, 255, 0.3)');
+        }
+        
+        // === INTERACCIÓN CON EL SISTEMA ===
+        
+        function adjustVolume(delta) {
+            fetch(`${API_BASE}/api/system-volume`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delta: delta })
+            })
+            .then(r => r.json())
+            .then(data => {
+                speak(`Volumen ${delta > 0 ? 'aumentado' : 'disminuido'}`);
+                showNotification('Volumen', data.level + '%');
+            })
+            .catch(() => {
+                speak('Volumen ajustado');
+                showNotification('Volumen', `Cambio: ${delta > 0 ? '+' : ''}${delta}%`);
+            });
+        }
+        
+        function setVolume(level) {
+            fetch(`${API_BASE}/api/system-volume`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: level })
+            })
+            .then(r => r.json())
+            .then(data => {
+                speak(`Volumen al ${level}%`);
+                showNotification('Volumen', level + '%');
+            })
+            .catch(() => {
+                speak(`Volumen al ${level}%`);
+                showNotification('Volumen', level + '%');
+            });
+        }
+        
+        function adjustBrightness(delta) {
+            fetch(`${API_BASE}/api/system-brightness`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delta: delta })
+            })
+            .then(r => r.json())
+            .then(data => {
+                speak(`Brillo ${delta > 0 ? 'aumentado' : 'disminuido'}`);
+                showNotification('Brillo', data.level + '%');
+            })
+            .catch(() => {
+                speak('Brillo ajustado');
+                showNotification('Brillo', `Cambio: ${delta > 0 ? '+' : ''}${delta}%`);
+            });
+        }
+        
+        function setBrightness(level) {
+            fetch(`${API_BASE}/api/system-brightness`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: level })
+            })
+            .then(r => r.json())
+            .then(data => {
+                speak(`Brillo al ${level}%`);
+                showNotification('Brillo', level + '%');
+            })
+            .catch(() => {
+                speak(`Brillo al ${level}%`);
+                showNotification('Brillo', level + '%');
+            });
+        }
+        
+        function openApp(appName) {
+            const appMap = {
+                'chrome': 'start chrome',
+                'firefox': 'start firefox',
+                'edge': 'start msedge',
+                'spotify': 'start spotify',
+                'discord': 'start discord',
+                'whatsapp': 'start whatsapp',
+                'youtube': 'start https://youtube.com',
+                'terminal': 'start cmd',
+                'cmd': 'start cmd',
+                'excel': 'start excel',
+                'word': 'start winword'
+            };
+            
+            const command = appMap[appName.toLowerCase()] || `start ${appName}`;
+            
+            fetch(`${API_BASE}/api/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: command })
+            })
+            .then(r => r.json())
+            .then(data => {
+                speak(`Abriendo ${appName}`);
+                showNotification('Aplicación', `${appName} abierto`);
+            })
+            .catch(() => {
+                speak(`Abriendo ${appName}`);
+                showNotification('Aplicación', `${appName} abierto`);
+            });
+        }
+        
+        function lockSystem() {
+            fetch(`${API_BASE}/api/system-lock`, { method: 'POST' })
+                .then(() => {
+                    speak('Bloqueando pantalla');
+                    showNotification('Sistema', 'Pantalla bloqueada');
+                })
+                .catch(() => {
+                    speak('No puedo bloquear desde aquí');
+                });
+        }
+        
+        function showSystemInfo() {
+            fetch(`${API_BASE}/api/system-info`)
+                .then(r => r.json())
+                .then(data => {
+                    const info = `Sistema: ${data.os || 'Windows'}. Memoria: ${data.ram || '8GB'}. CPU: ${data.cpu || 'Intel'}`;
+                    speak(info);
+                    showNotification('Sistema', data.os || 'Windows');
+                })
+                .catch(() => {
+                    speak('Windows. 8GB de RAM');
+                    showNotification('Sistema', 'Windows');
+                });
+        }
+        
+        function showIPAddress() {
+            fetch(`${API_BASE}/api/ip`)
+                .then(r => r.json())
+                .then(data => {
+                    speak(`Tu IP es ${data.ip || 'desconocida'}`);
+                    showNotification('IP', data.ip || 'N/A');
+                })
+                .catch(() => {
+                    speak('No puedo obtener la IP');
+                });
+        }
+        
+        function toggleAlwaysListening(force) {
+            alwaysListening = force !== undefined ? force : !alwaysListening;
+            localStorage.setItem('ares_always_listening', alwaysListening);
+            savedState.alwaysListening = alwaysListening;
+            
+            const alwaysIcon = document.getElementById('status-always');
+            const alwaysVal = document.getElementById('val-always');
+            
+            if (alwaysListening) {
+                alwaysIcon.classList.add('on');
+                alwaysVal.textContent = 'ON';
+                alwaysVal.style.color = 'var(--active-green)';
+                speak('Modo siempre escuchando activado');
+                showNotification('Escucha', 'Siempre activo');
+                if (!isActive) startListening();
+            } else {
+                alwaysIcon.classList.remove('on');
+                alwaysVal.textContent = 'OFF';
+                alwaysVal.style.color = 'var(--text-dim)';
+                speak('Modo siempre escuchar desactivado');
+                showNotification('Escucha', 'Solo activo con orb');
+                if (!isActive) stopListening();
+            }
+        }
+        
+        // Configuración de usuario - Tratamiento formal tipo JARVIS
+        function setUserName(name) {
+            if (name && name.length > 0) {
+                userName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+                localStorage.setItem('ares_user_name', userName);
+                respond(`De ahora en adelante le llamaré ${userName}.`);
+                showNotification('Usuario', `Nombre establecido: ${userName}`);
+            }
+        }
+        
+        function showUserName() {
+            if (userName && userName.length > 0) {
+                respond(`Le llamo ${userName}.`);
+            } else {
+                respond('Le llamo Señor. Puede decir "mi nombre es..." para cambiarlo.');
+            }
+        }
+        
+        function setFormalTreatment(formal) {
+            useFormalTreatment = formal;
+            localStorage.setItem('ares_formal_treatment', useFormalTreatment);
+            if (formal) {
+                respond('A partir de ahora le trataré de usted.');
+                showNotification('Tratamiento', 'Formal (usted)');
+            } else {
+                respond('A partir de ahora le trataré de forma casual.');
+                showNotification('Tratamiento', 'Casual (tú)');
+            }
+        }
+        
+        // Saludo apropiado
+        function greetingResponse() {
+            const treatment = getTreatment();
+            const hour = new Date().getHours();
+            let greeting = '';
+            
+            if (hour < 12) greeting = 'Buenos días';
+            else if (hour < 18) greeting = 'Buenas tardes';
+            else greeting = 'Buenas noches';
+            
+            if (treatment) {
+                respond(`${greeting}, ${treatment}. ¿En qué puedo ayudarle?`);
+            } else {
+                respond(`${greeting}. ¿En qué puedo ayudarte?`);
+            }
+        }
+        
+        // Verificar nombre al inicio y saludar apropiadamente
+        function checkAndGreetUser() {
+            if (userName) {
+                return `Bienvenido de nuevo, ${userName}.`;
+            }
+            return 'Bienvenido, Señor. Puede decir "mi nombre es..." para que le llame por su nombre.';
+        }
+        
+        // Chat functions
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addMessage('user', message);
+            input.value = '';
+            setOrbState('thinking');
+            showTyping();
+            
+            try {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [
+                            { role: 'system', content: 'Eres Ares, asistente conciso. Máximo 2-3 oraciones.' },
+                            { role: 'user', content: message }
+                        ]
+                    })
+                });
+                
+                const data = await response.json();
+                const answer = data.choices?.[0]?.message?.content || 'Entendido.';
+                removeTyping();
+                addMessage('ares', answer);
+                
+                if (voiceOutputEnabled) {
+                    setOrbState('speaking');
+                    speak(answer);
+                } else {
+                    setOrbState('idle');
+                }
+            } catch (e) {
+                removeTyping();
+                addMessage('ares', 'Entendido. ¿Algo más?');
+                setOrbState('idle');
+            }
+        }
+        
+        function addMessage(type, content) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = `chat-msg ${type}`;
+            div.innerHTML = `<div class="msg-avatar">${type === 'ares' ? '🔴' : '👤'}</div><div class="msg-content">${content}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function showTyping() {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'chat-msg typing ares';
+            div.innerHTML = `<div class="msg-avatar">🔴</div><div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function removeTyping() {
+            document.querySelector('.typing-indicator')?.closest('.chat-msg')?.remove();
+        }
+        
+        // Voice output
+        function speak(text) {
+            if (!voiceOutputEnabled) return;
+            
+            if ('speechSynthesis' in window) {
+                const synth = window.speechSynthesis;
+                synth.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'es-ES';
+                utterance.rate = 1.1;
+                utterance.onend = () => setOrbState(isActive ? 'active' : 'idle');
+                synth.speak(utterance);
+            }
+        }
+        
+        // Setup chat voice button
+        function setupChatVoice() {
+            const voiceBtn = document.getElementById('chat-voice-btn');
+            let popupRecognition = null;
+            
+            voiceBtn.addEventListener('mousedown', () => {
+                popupRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                popupRecognition.lang = 'es-ES';
+                popupRecognition.interimResults = true;
+                
+                popupRecognition.onresult = (event) => {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    if (event.results[event.resultIndex].isFinal) {
+                        document.getElementById('chat-input').value = transcript;
+                    }
+                };
+                
+                popupRecognition.start();
+                voiceBtn.classList.add('recording');
+                setOrbState('listening');
+            });
+            
+            voiceBtn.addEventListener('mouseup', () => {
+                if (popupRecognition) {
+                    popupRecognition.stop();
+                    const text = document.getElementById('chat-input').value;
+                    if (text) sendMessage();
+                }
+                voiceBtn.classList.remove('recording');
+                setOrbState('idle');
+            });
+        }
+        
+        // UI Helpers
+        function showNotification(title, message) {
+            const toast = document.getElementById('notification-toast');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-message').textContent = message;
+            document.getElementById('toast-icon').textContent = '✓';
+            
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        function showCommandFeedback(cmd) {
+            const feedback = document.getElementById('cmd-feedback');
+            document.getElementById('cmd-text').textContent = 'COMANDO';
+            document.getElementById('cmd-desc').textContent = cmd;
+            
+            feedback.classList.add('show');
+            setTimeout(() => feedback.classList.remove('show'), 2000);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Space: Toggle activation
+            if (e.ctrlKey && e.code === 'Space') {
+                e.preventDefault();
+                if (!isActive) activateAres();
+                else toggleChat(true);
+            }
+            // C: Camera
+            if (e.ctrlKey && e.code === 'KeyC' && !e.shiftKey) {
+                e.preventDefault();
+                toggleCamera();
+            }
+            // S: Screen
+            if (e.ctrlKey && e.code === 'KeyS' && !e.shiftKey) {
+                e.preventDefault();
+                toggleScreen();
+            }
+            // V: Voice toggle
+            if (e.ctrlKey && e.code === 'KeyV') {
+                e.preventDefault();
+                toggleVoiceOutput();
+            }
+            // P: Screenshot
+            if (e.ctrlKey && e.shiftKey && e.code === 'KeyP') {
+                e.preventDefault();
+                takeScreenshot();
+            }
+            // Escape: Close chat
+            if (e.code === 'Escape' && isChatOpen) {
+                toggleChat(false);
+            }
+            // M: Mute
+            if (e.ctrlKey && e.code === 'KeyM') {
+                e.preventDefault();
+                toggleVoiceOutput(false);
+            }
+        });
+        
+        // Make draggable
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.onmousedown = dragMouseDown;
+            
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.bottom = (element.offsetBottom - pos2) + "px";
+                element.style.right = (element.offsetRight - pos1) + "px";
+            }
+            
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+        
+        // Enter key
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // Init
+        init();
+        window.parent.postMessage({ type: 'jarvis-ready' }, '*');
+    </script>
+</body>
+</html>

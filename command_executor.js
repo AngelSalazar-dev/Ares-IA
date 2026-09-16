@@ -5,8 +5,11 @@ const ALLOWED_COMMANDS = [
     'code', 'npm', 'node', 'git', 'docker', 'python', 'pip',
     'cd', 'dir', 'ls', 'type', 'mkdir', 'del', 'rm', 'cp', 'mv',
     'curl', 'wget', 'ping', 'ipconfig', 'tasklist', 'taskkill',
-    'start', 'explorer', 'notepad', 'cmd', 'powershell'
+    'start', 'explorer', 'notepad', 'cmd', 'powershell',
+    'calc', 'spotify', 'chrome', 'msedge', 'firefox', 'control',
+    'taskmgr', 'write', 'mspaint', 'sndvol'
 ];
+
 
 const DANGEROUS_PATTERNS = [
     /format/i, /del\s+\/f/i, /rm\s+-rf/i, /drop\s+table/i,
@@ -27,8 +30,13 @@ function isCommandAllowed(cmd) {
 
 function executeShellCommand(command) {
     return new Promise((resolve, reject) => {
-        if (!isCommandAllowed(command)) {
-            reject({ error: 'Comando no permitido o potencialmente peligroso' });
+        // Sanitize command: trim and remove surrounding quotes if any
+        let sanitizedCmd = command.trim();
+        // Remove trailing quotes if AI accidentally added one at the end
+        sanitizedCmd = sanitizedCmd.replace(/^['"]|['"]$/g, '');
+        
+        if (!isCommandAllowed(sanitizedCmd)) {
+            reject({ error: `Comando no permitido: ${sanitizedCmd}` });
             return;
         }
         
@@ -36,7 +44,8 @@ function executeShellCommand(command) {
         const shell = isWindows ? 'cmd.exe' : '/bin/bash';
         const shellArg = isWindows ? '/c' : '-c';
         
-        const child = exec(`${shell} ${shellArg} "${command}"`, {
+        const child = exec(`${shell} ${shellArg} "${sanitizedCmd}"`, {
+
             cwd: process.cwd(),
             timeout: 30000,
             maxBuffer: 1024 * 1024

@@ -1,15 +1,131 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const db = require('./database');
-
-// Importar gateway de Telegram
 const { startBot } = require('./lib/telegram');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
+
+// === AI PROVIDERS (Misma config que Kyun) ===
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-oss-120b:free';
+
+const COOLDOWN_MS = 60_000;
+const MAX_FAILS = 2;
+const providerStatus = {
+  groq: { available: !!GROQ_API_KEY, cooldownUntil: 0, failCount: 0 },
+  openrouter: { available: !!OPENROUTER_API_KEY, cooldownUntil: 0, failCount: 0 },
+};
+
+function isInCooldown(name) {
+  const s = providerStatus[name];
+  if (Date.now() < s.cooldownUntil) return true;
+  if (s.cooldownUntil > 0) {
+    s.cooldownUntil = 0;
+    s.failCount = 0;
+    s.available = true;
+  }
+  return false;
+}
+
+function recordFailure(name) {
+  const s = providerStatus[name];
+  s.failCount++;
+  if (s.failCount >= MAX_FAILS) {
+    s.cooldownUntil = Date.now() + COOLDOWN_MS;
+    s.available = false;
+  }
+}
+
+function recordSuccess(name) {
+  providerStatus[name].failCount = 0;
+  providerStatus[name].cooldownUntil = 0;
+  providerStatus[name].available = true;
+}
+
+async function callGroq(messages) {
+  if (!GROQ_API_KEY || isInCooldown('groq')) {
+    throw new Error('Groq no disponible');
+  }
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 2048
+    })
+  });
+
+  if (!response.ok) {
+    recordFailure('groq');
+    throw new Error(`Groq error ${response.status}`);
+  }
+
+  recordSuccess('groq');
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+async function callOpenRouter(messages) {
+  if (!OPENROUTER_API_KEY || isInCooldown('openrouter')) {
+    throw new Error('OpenRouter no disponible');
+  }
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 2048
+    })
+  });
+
+  if (!response.ok) {
+    recordFailure('openrouter');
+    throw new Error(`OpenRouter error ${response.status}`);
+  }
+
+  recordSuccess('openrouter');
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+// Fallback system: Groq → OpenRouter (como Kyun)
+async function getAIResponse(messages) {
+  try {
+    return await callGroq(messages);
+  } catch (e) {
+    console.log(`[AI] Groq falló: ${e.message}, intentando OpenRouter...`);
+  }
+
+  try {
+    return await callOpenRouter(messages);
+  } catch (e) {
+    console.log(`[AI] OpenRouter falló: ${e.message}`);
+  }
+
+  return 'Todos los providers están indisponibles. Intenta de nuevo en unos segundos.';
+}
+
+// === ROUTES ===
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index_gemini.html'));
@@ -23,6 +139,7 @@ app.get('/overlay', (req, res) => {
     res.sendFile(path.join(__dirname, 'overlay.html'));
 });
 
+// Chat endpoint con fallback Groq → OpenRouter
 app.post('/api/chat', async (req, res) => {
     const { mensaje, sessionId, tipo } = req.body;
     
@@ -40,6 +157,38 @@ app.post('/api/chat', async (req, res) => {
     }
     
     res.json({ success: true });
+});
+
+// AI Chat endpoint (nuevo, usa mismos providers que Kyun)
+app.post('/api/ai/chat', async (req, res) => {
+    const { message, history } = req.body;
+    
+    if (!message) {
+        return res.status(400).json({ error: 'Mensaje requerido' });
+    }
+    
+    const systemPrompt = `Eres ARES, asistente de IA en español. Responde de forma útil y concisa. Estilo TRON/futurista.`;
+    
+    const messages = [
+        { role: 'system', content: systemPrompt },
+        ...(history || []),
+        { role: 'user', content: message }
+    ];
+    
+    try {
+        const response = await getAIResponse(messages);
+        res.json({ response, provider: providerStatus.groq.available ? 'groq' : 'openrouter' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Provider status endpoint
+app.get('/api/providers', (req, res) => {
+    res.json({
+        groq: { enabled: !!GROQ_API_KEY, inCooldown: isInCooldown('groq'), model: GROQ_MODEL },
+        openrouter: { enabled: !!OPENROUTER_API_KEY, inCooldown: isInCooldown('openrouter'), model: OPENROUTER_MODEL }
+    });
 });
 
 app.get('/api/conversacion/:sessionId', async (req, res) => {
@@ -125,9 +274,8 @@ app.post('/api/keyboard', async (req, res) => {
     }
 });
 
-// === ENDPOINTS DE CONTROL DEL SISTEMA ===
+// === SYSTEM CONTROL ENDPOINTS ===
 
-// Control de volumen (Windows)
 app.post('/api/system-volume', async (req, res) => {
     const { level, delta } = req.body;
     const { exec } = require('child_process');
@@ -135,7 +283,6 @@ app.post('/api/system-volume', async (req, res) => {
     try {
         let command;
         if (delta) {
-            // Ajustar volumen actual
             command = `powershell -Command "(Get-AudioDevice -PlaybackVolume *100 + ${delta}) | Set-AudioDevice"`;
         } else if (level !== undefined) {
             command = `powershell -Command "(Get-AudioDevice).PlaybackVolume = ${level/100}; (Get-AudioDevice).SetVolume(${level})"`;
@@ -149,7 +296,6 @@ app.post('/api/system-volume', async (req, res) => {
     }
 });
 
-// Control de brillo (Windows)
 app.post('/api/system-brightness', async (req, res) => {
     const { level, delta } = req.body;
     const { exec } = require('child_process');
@@ -172,7 +318,6 @@ app.post('/api/system-brightness', async (req, res) => {
     });
 });
 
-// Lock de sistema (Windows)
 app.post('/api/system-lock', async (req, res) => {
     const { exec } = require('child_process');
     exec('rundll32.exe user32.dll,LockWorkStation', (err) => {
@@ -180,7 +325,6 @@ app.post('/api/system-lock', async (req, res) => {
     });
 });
 
-// Información del sistema
 app.get('/api/system-info', async (req, res) => {
     const os = require('os');
     res.json({
@@ -192,7 +336,6 @@ app.get('/api/system-info', async (req, res) => {
     });
 });
 
-// IP pública
 app.get('/api/ip', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default || require('node-fetch');
@@ -215,10 +358,9 @@ app.get('/api/ip', async (req, res) => {
     }
 });
 
-// Estado del sistema
 app.get('/api/system-stats', async (req, res) => {
     const os = require('os');
-    const cpuUsage = os.loadavg()[0] * 10; // Aproximación
+    const cpuUsage = os.loadavg()[0] * 10;
     res.json({
         cpu: Math.min(100, Math.round(cpuUsage)),
         ram: Math.round((1 - os.freemem() / os.totalmem()) * 100),
@@ -226,7 +368,6 @@ app.get('/api/system-stats', async (req, res) => {
     });
 });
 
-// Análisis de pantalla
 app.post('/api/analyze-screen', async (req, res) => {
     res.json({ 
         success: true, 
@@ -244,9 +385,10 @@ async function startServer(overridePort = null) {
         console.log(`   Base de datos local: ✅ SQLite`);
         console.log(`   Sincronización: ${connected ? '✅ En línea' : '⏳ Sin conexión'}`);
         console.log(`   Servidor: http://localhost:${portToUse}${portToUse !== PORT ? ' (puerto alternativo)' : ''}`);
+        console.log(`   Providers: Groq=${!!GROQ_API_KEY}, OpenRouter=${!!OPENROUTER_API_KEY}`);
+        console.log(`   Modelos: Groq=${GROQ_MODEL}, OpenRouter=${OPENROUTER_MODEL}`);
         console.log(`   Telegram: @Ares_MasterControlBot ✅\n`);
         
-        // Iniciar gateway de Telegram en background
         startBot().catch(e => console.error('[Telegram] Error:', e.message));
     });
     

@@ -61,7 +61,9 @@ async function initLocalDatabase() {
             ultimo_mensaje TEXT,
             fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
             fecha_actualizacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            sync INTEGER DEFAULT 0
+            sync INTEGER DEFAULT 0,
+            fuente TEXT DEFAULT 'web',
+            telegram_chat_id TEXT
         )
     `);
     
@@ -72,7 +74,8 @@ async function initLocalDatabase() {
             mensaje TEXT NOT NULL,
             tipo TEXT NOT NULL,
             fecha TEXT DEFAULT CURRENT_TIMESTAMP,
-            sync INTEGER DEFAULT 0
+            sync INTEGER DEFAULT 0,
+            fuente TEXT DEFAULT 'web'
         )
     `);
     
@@ -248,13 +251,13 @@ async function syncToCloud() {
     }
 }
 
-async function guardarMensaje(sessionId, mensaje, tipo) {
+async function guardarMensaje(sessionId, mensaje, tipo, fuente = 'web') {
     const local = getLocalPool();
     const fecha = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
     local.run(
-        "INSERT INTO conversaciones (session_id, mensaje, tipo, fecha, sync) VALUES (?, ?, ?, ?, 0)",
-        [sessionId, mensaje, tipo, fecha]
+        "INSERT INTO conversaciones (session_id, mensaje, tipo, fecha, sync, fuente) VALUES (?, ?, ?, ?, 0, ?)",
+        [sessionId, mensaje, tipo, fecha, fuente]
     );
     
     await syncToCloud();
@@ -276,13 +279,13 @@ async function limpiarConversacion(sessionId) {
     return true;
 }
 
-async function crearChat(sessionId, titulo = 'Nuevo Chat') {
+async function crearChat(sessionId, titulo = 'Nuevo Chat', fuente = 'web', telegramChatId = null) {
     const local = getLocalPool();
     const fecha = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
     local.run(
-        "INSERT OR IGNORE INTO chats (session_id, titulo, fecha_creacion, fecha_actualizacion, sync) VALUES (?, ?, ?, ?, 0)",
-        [sessionId, titulo, fecha, fecha]
+        "INSERT OR IGNORE INTO chats (session_id, titulo, fecha_creacion, fecha_actualizacion, sync, fuente, telegram_chat_id) VALUES (?, ?, ?, ?, 0, ?, ?)",
+        [sessionId, titulo, fecha, fecha, fuente, telegramChatId]
     );
     
     await syncToCloud();
@@ -325,6 +328,29 @@ async function eliminarChat(sessionId) {
     return true;
 }
 
+async function obtenerChatsPorFuente(fuente) {
+    const local = getLocalPool();
+    let query = "SELECT session_id, titulo, ultimo_mensaje, fecha_creacion, fecha_actualizacion, fuente, telegram_chat_id FROM chats";
+    
+    if (fuente && fuente !== 'all') {
+        query += " WHERE fuente = ?";
+        const [rows] = local.query(query, [fuente]);
+        return rows.sort((a, b) => new Date(b.fecha_actualizacion) - new Date(a.fecha_actualizacion));
+    }
+    
+    const [rows] = local.query(query + " ORDER BY fecha_actualizacion DESC");
+    return rows;
+}
+
+async function obtenerChatPorTelegramId(telegramChatId) {
+    const local = getLocalPool();
+    const [rows] = local.query(
+        "SELECT session_id FROM chats WHERE telegram_chat_id = ? LIMIT 1",
+        [telegramChatId]
+    );
+    return rows.length > 0 ? rows[0] : null;
+}
+
 module.exports = {
     testConnection,
     initDatabase,
@@ -335,5 +361,7 @@ module.exports = {
     obtenerHistorialChats,
     actualizarChat,
     renombrarChat,
-    eliminarChat
+    eliminarChat,
+    obtenerChatsPorFuente,
+    obtenerChatPorTelegramId
 };

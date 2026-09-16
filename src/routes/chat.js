@@ -10,6 +10,15 @@ const { getAIResponse, getProviderStatus } = require('../config/providers');
 const { chatLimiter } = require('../middleware/rateLimiter');
 const { asyncHandler } = require('../middleware/errorHandler');
 
+// GET /api/config - Get API keys for frontend (safe to expose)
+router.get('/config', (req, res) => {
+    res.json({
+        openrouterKey: process.env.OPENROUTER_API_KEY || "",
+        groqKey: process.env.GROQ_API_KEY || "",
+        openrouterModel: process.env.OPENROUTER_MODEL || "openrouter/free"
+    });
+});
+
 // GET /api/providers - Estado de providers
 router.get('/providers', (req, res) => {
     res.json(getProviderStatus());
@@ -103,6 +112,50 @@ router.delete('/chats/:sessionId', asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
     await db.eliminarChat(sessionId);
     res.json({ success: true });
+}));
+
+// GET /api/chats/filtrar/:fuente - Filtrar chats por fuente
+router.get('/chats/filtrar/:fuente', asyncHandler(async (req, res) => {
+    const { fuente } = req.params;
+    const chats = await db.obtenerChatsPorFuente(fuente);
+    res.json(chats);
+}));
+
+// GET /api/telegram/conversacion/:chatId - Obtener conversación de Telegram
+router.get('/telegram/conversacion/:chatId', asyncHandler(async (req, res) => {
+    const { chatId } = req.params;
+    const session = await db.obtenerChatPorTelegramId(chatId);
+    
+    if (!session) {
+        return res.json([]);
+    }
+    
+    const mensajes = await db.obtenerConversacion(session.session_id);
+    res.json(mensajes);
+}));
+
+// GET /api/stats/por-fuente - Estadísticas por fuente
+router.get('/stats/por-fuente', asyncHandler(async (req, res) => {
+    const local = db.getLocalPool ? db.getLocalPool() : null;
+    if (!local) {
+        return res.json({ web: 0, telegram: 0, total: 0 });
+    }
+    
+    const [webChats] = local.query("SELECT COUNT(*) as count FROM chats WHERE fuente = 'web'");
+    const [telegramChats] = local.query("SELECT COUNT(*) as count FROM chats WHERE fuente = 'telegram'");
+    const [webMsgs] = local.query("SELECT COUNT(*) as count FROM conversaciones WHERE fuente = 'web'");
+    const [telegramMsgs] = local.query("SELECT COUNT(*) as count FROM conversaciones WHERE fuente = 'telegram'");
+    
+    res.json({
+        chats: {
+            web: webChats[0]?.count || 0,
+            telegram: telegramChats[0]?.count || 0
+        },
+        mensajes: {
+            web: webMsgs[0]?.count || 0,
+            telegram: telegramMsgs[0]?.count || 0
+        }
+    });
 }));
 
 module.exports = router;

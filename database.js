@@ -18,7 +18,23 @@ let sqlDb = null;
 let mysqlPool = null;
 let isOnline = false;
 let syncInterval = null;
-let pendingChanges = [];
+let connectionCheckInterval = null;
+let saveTimeout = null;
+let hasUnsavedChanges = false;
+
+// Debounced save - evita escribir en disco en cada operación
+function scheduleSave() {
+    hasUnsavedChanges = true;
+    if (saveTimeout) return; // Ya hay un save programado
+    
+    saveTimeout = setTimeout(() => {
+        if (hasUnsavedChanges) {
+            saveLocalDatabase();
+            hasUnsavedChanges = false;
+        }
+        saveTimeout = null;
+    }, 5000); // Guarda como máximo una vez cada 5 segundos
+}
 
 async function initLocalDatabase() {
     const SQL = await initSqlJs();
@@ -66,9 +82,25 @@ async function initLocalDatabase() {
 
 function saveLocalDatabase() {
     if (!sqlDb) return;
-    const data = sqlDb.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(LOCAL_DB_PATH, buffer);
+    try {
+        const data = sqlDb.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(LOCAL_DB_PATH, buffer);
+    } catch (e) {
+        console.error("[DB] Error guardando base de datos:", e.message);
+    }
+}
+
+// Guardado inmediato (para usar al cerrar)
+function forceSaveNow() {
+    if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        saveTimeout = null;
+    }
+    if (hasUnsavedChanges) {
+        saveLocalDatabase();
+        hasUnsavedChanges = false;
+    }
 }
 
 function getLocalPool() {
@@ -92,7 +124,7 @@ function getLocalPool() {
         run: (sql, params) => {
             try {
                 sqlDb.run(sql, params);
-                saveLocalDatabase();
+                scheduleSave(); // Debounced save
                 return [{}];
             } catch (e) {
                 console.error("[DB Local] Error run:", e.message);
@@ -143,7 +175,7 @@ function startSync() {
         await syncToCloud();
     }, 30000);
     
-    setInterval(async () => {
+    connectionCheckInterval = setInterval(async () => {
         const wasOnline = isOnline;
         await testConnection();
         if (!wasOnline && isOnline) {
@@ -151,6 +183,24 @@ function startSync() {
             await syncToCloud();
         }
     }, 10000);
+    
+    // Cleanup al cerrar el proceso
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    process.on('exit', cleanup);
+}
+
+function cleanup() {
+    console.log("[DB] Cerrando conexiones...");
+    forceSaveNow(); // Guardar cambios pendientes
+    
+    if (syncInterval) clearInterval(syncInterval);
+    if (connectionCheckInterval) clearInterval(connectionCheckInterval);
+    if (saveTimeout) clearTimeout(saveTimeout);
+    
+    if (mysqlPool) {
+        mysqlPool.end().catch(() => {});
+    }
 }
 
 async function syncToCloud() {

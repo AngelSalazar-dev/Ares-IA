@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const compression = require('compression');
 const path = require('path');
 
 // Config
@@ -23,11 +24,37 @@ if (!validateEnv()) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Compresión gzip (reduce tamaño de respuestas ~70%)
+app.use(compression({
+    threshold: 1024, // Comprimir respuestas mayores a 1KB
+    level: 6 // Nivel de compresión balanceado
+}));
+
 // Middleware
 app.use(express.json());
+
+// Rate limiting
 app.use(generalLimiter);
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+
+// Cache para archivos estáticos (1 día)
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '1d',
+    etag: true,
+    lastModified: true
+}));
+
+// Cache más largo para assets (CSS, JS, imágenes)
+app.use(express.static(__dirname, {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        // Headers más agresivos para CSS y JS
+        if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+            res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        }
+    }
+}));
 
 // Routes
 app.use('/api', chatRoutes);

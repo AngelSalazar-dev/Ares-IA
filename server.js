@@ -15,6 +15,8 @@ const { errorHandler } = require('./src/middleware/errorHandler');
 const chatRoutes = require('./src/routes/chat');
 const commandRoutes = require('./src/routes/command');
 const systemRoutes = require('./src/routes/system');
+const aiRoutes = require('./src/routes/ai');
+const lifestyleRoutes = require('./src/routes/lifestyle');
 
 // Validar variables de entorno
 if (!validateEnv()) {
@@ -60,6 +62,8 @@ app.use(express.static(__dirname, {
 app.use('/api', chatRoutes);
 app.use('/api', commandRoutes);
 app.use('/api', systemRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/lifestyle', lifestyleRoutes);
 
 // Pages
 app.get('/', (req, res) => {

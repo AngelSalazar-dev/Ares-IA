@@ -4,11 +4,11 @@ const fs = require('fs');
 const path = require('path');
 
 const TIDB_CONFIG = {
-    host: 'gateway01.us-east-1.prod.aws.tidbcloud.com',
-    port: 4000,
-    user: '3ib5gVzd7xp2Xme.root',
-    password: 'uQTzgepjUJXqxKx0',
-    database: 'test',
+    host: process.env.DB_HOST || 'gateway01.us-east-1.prod.aws.tidbcloud.com',
+    port: parseInt(process.env.DB_PORT || '4000'),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'test',
     ssl: { rejectUnauthorized: true }
 };
 

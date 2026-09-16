@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Tests
+tests
+coverage
+
+# Documentation
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build
+.next
+dist
+build
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Development files
+MEMORIA.md
+SPEC.md
+GEMINI.md
+ares-agent
+hermes-env
+hermes-source

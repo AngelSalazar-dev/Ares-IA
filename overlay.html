@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ares Overlay</title>
+    <link rel="stylesheet" href="https://unpkg.com/lucide-static@0.263.1/font/lucide.css">
     <style>
         * {
             margin: 0;
@@ -12,9 +13,9 @@
         }
         
         :root {
-            --primary: #E31C25;
-            --accent: #FF2D35;
-            --glow: #FF3333;
+            --primary: #FF1133;
+            --accent: #FF3355;
+            --glow: #FF1133;
         }
         
         body {
@@ -441,23 +442,55 @@
             0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); }
             50% { box-shadow: 0 0 30px rgba(0, 255, 0, 0.8); }
         }
+
+        /* Lucide Icons - TRON Style */
+        .lucide {
+            width: 18px;
+            height: 18px;
+            stroke-width: 1.5;
+            vertical-align: middle;
+        }
+
+        .lucide.text-red { color: #ff1133; }
+        .lucide.text-cyan { color: #00ffff; }
+        .lucide.text-green { color: #00ff88; }
+        .lucide.fill-red { fill: #ff1133; stroke: #ff1133; }
+
+        .lucide.glow {
+            filter: drop-shadow(0 0 4px #ff1133);
+        }
+
+        .menu-item .lucide {
+            width: 20px;
+            height: 20px;
+        }
+
+        .popup-voice-btn .lucide {
+            width: 18px;
+            height: 18px;
+        }
+
+        .avatar .lucide {
+            width: 16px;
+            height: 16px;
+        }
     </style>
 </head>
 <body>
     <div id="ares-overlay">
         <div id="chat-popup">
             <div class="popup-header">
-                <h3>🔴 Ares</h3>
+                <h3><i data-lucide="circle" class="fill-red"></i> Ares</h3>
                 <button class="popup-close" onclick="toggleChat()">✕</button>
             </div>
             <div class="popup-messages" id="popup-messages">
                 <div class="popup-message ares">
-                    <div class="avatar">🔴</div>
+                    <div class="avatar"><i data-lucide="circle" class="fill-red"></i></div>
                     <div class="content">Salve. Estoy aquí. ¿En qué puedo ayudarte?</div>
                 </div>
             </div>
             <div class="popup-input-area">
-                <button class="popup-voice-btn" id="popup-voice" title="Mantener para hablar">🎤</button>
+                <button class="popup-voice-btn" id="popup-voice" title="Mantener para hablar"><i data-lucide="mic"></i></button>
                 <input type="text" id="popup-input" placeholder="Escribe o habla..." autocomplete="off">
                 <button onclick="sendPopupMessage()">➤</button>
             </div>
@@ -465,25 +498,25 @@
         
         <div class="ares-menu" id="ares-menu">
             <div class="menu-item" onclick="toggleChat()">
-                <span class="icon">💬</span>
+                <span class="icon"><i data-lucide="message-square"></i></span>
                 <span>Chat</span>
             </div>
             <div class="menu-divider"></div>
             <div class="menu-item" id="menu-camera" onclick="toggleCamera()">
-                <span class="icon">📷</span>
+                <span class="icon"><i data-lucide="camera"></i></span>
                 <span>Cámara</span>
             </div>
             <div class="menu-item" id="menu-screen" onclick="toggleScreen()">
-                <span class="icon">🖥️</span>
+                <span class="icon"><i data-lucide="monitor"></i></span>
                 <span>Pantalla</span>
             </div>
             <div class="menu-item" id="menu-both" onclick="toggleBoth()">
-                <span class="icon">📺</span>
+                <span class="icon"><i data-lucide="tv"></i></span>
                 <span>Video + Pantalla</span>
             </div>
             <div class="menu-divider"></div>
             <div class="menu-item" onclick="toggleOverlay()">
-                <span class="icon">❌</span>
+                <span class="icon"><i data-lucide="x"></i></span>
                 <span>Cerrar</span>
             </div>
         </div>
@@ -496,7 +529,7 @@
     </div>
     
     <script>
-        const API_KEY = ""; // REEMPLAZAR CON TU KEY
+        const API_KEY = "";
         
         let isMenuOpen = false;
         let isChatOpen = false;
@@ -796,6 +829,11 @@
         
         initOverlay();
         window.parent.postMessage({ type: 'overlay-ready' }, '*');
+        
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     </script>
 </body>
 </html>

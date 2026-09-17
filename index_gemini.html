@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ARES - Sistema de Inteligencia</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&family=Outfit:wght@300;400;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/lucide-static@0.263.1/font/lucide.css">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -2881,6 +2882,53 @@
             animation: glowPulseStrong 1.5s ease-in-out infinite;
         }
 
+        /* Lucide Icons - TRON Style */
+        .lucide {
+            width: 18px;
+            height: 18px;
+            stroke-width: 1.5;
+            vertical-align: middle;
+        }
+
+        .lucide.text-red { color: #ff1133; }
+        .lucide.text-cyan { color: #00ffff; }
+        .lucide.text-green { color: #00ff88; }
+        .lucide.text-dim { color: #666680; }
+        .lucide.fill-red { fill: #ff1133; stroke: #ff1133; }
+
+        .lucide.glow {
+            filter: drop-shadow(0 0 4px #ff1133);
+        }
+
+        .lucide.spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .chat-item-icon .lucide {
+            width: 16px;
+            height: 16px;
+        }
+
+        .chat-action-btn .lucide {
+            width: 14px;
+            height: 14px;
+        }
+
+        .input-btn .lucide {
+            width: 18px;
+            height: 18px;
+        }
+
+        .live-control-btn .lucide {
+            width: 20px;
+            height: 20px;
+        }
+
         /* Active chat indicator pulse */
         .chat-item.active::after {
             animation: blink 0.5s ease-in-out infinite, glowPulseStrong 2s ease-in-out infinite;
@@ -3015,7 +3063,7 @@
         <div class="chat-sidebar">
             <div class="sidebar-header">
                 <h3>SESSIONS</h3>
-                <button class="new-chat-btn" onclick="createNewChat()" title="New Session">+</button>
+                <button class="new-chat-btn" onclick="createNewChat()" title="New Session"><i data-lucide="plus"></i></button>
             </div>
             <div class="chats-list" id="chats-list">
                 <div class="chat-empty-msg">Sin chats aún</div>
@@ -3075,9 +3123,9 @@
 
                 <div class="input-container-pill">
                     <div class="input-area tron-pill">
-                        <button class="input-btn voice" id="voice-btn" title="Hold to speak"> 🎤</button>
+                        <button class="input-btn voice" id="voice-btn" title="Hold to speak"><i data-lucide="mic"></i></button>
                         <input type="text" id="chat-input" placeholder="Enter command..." autocomplete="off">
-                        <button class="input-btn speak" id="speak-btn" title="Ares speaks">🔊</button>
+                        <button class="input-btn speak" id="speak-btn" title="Ares speaks"><i data-lucide="volume-2"></i></button>
                         <button class="input-btn send" id="send-btn">▸</button>
                     </div>
                 </div>
@@ -3106,8 +3154,8 @@
         <div class="floating-panel-content">
             <video id="panel-video" autoplay muted playsinline></video>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                <button class="quick-action" onclick="executeCommand('analiza el video')">👁️ Analizar</button>
-                <button class="quick-action" onclick="toggleVideoSource()">🔄 Cambiar</button>
+                <button class="quick-action" onclick="executeCommand('analiza el video')"><i data-lucide="eye"></i> Analizar</button>
+                <button class="quick-action" onclick="toggleVideoSource()"><i data-lucide="refresh-cw"></i> Cambiar</button>
             </div>
         </div>
     </div>
@@ -3130,8 +3178,8 @@
         <div class="live-video-container">
             <video id="live-video" autoplay muted playsinline></video>
             <div class="video-source-indicator">
-                <span class="source-badge camera" id="camera-badge" style="display: none">📷 CÁMARA</span>
-                <span class="source-badge screen" id="screen-badge" style="display: none">🖥️ PANTALLA</span>
+                <span class="source-badge camera" id="camera-badge" style="display: none"><i data-lucide="camera"></i> CÁMARA</span>
+                <span class="source-badge screen" id="screen-badge" style="display: none"><i data-lucide="monitor"></i> PANTALLA</span>
             </div>
         </div>
         <div class="live-interim-container" id="live-interim-container" style="display: none;">
@@ -3140,27 +3188,27 @@
         </div>
         <div class="live-controls">
             <button class="live-control-btn" id="live-camera-btn" onclick="toggleLiveCamera()">
-                <span>📷</span>
+                <span><i data-lucide="camera"></i></span>
                 <span>Cámara</span>
             </button>
             <button class="live-control-btn" id="live-screen-btn" onclick="toggleLiveScreen()">
-                <span>🖥️</span>
+                <span><i data-lucide="monitor"></i></span>
                 <span>Pantalla</span>
             </button>
             <button class="live-control-btn" id="live-voice-btn" onclick="toggleLiveVoice()">
-                <span>🎤</span>
+                <span><i data-lucide="mic"></i></span>
                 <span>Voz</span>
             </button>
             <button class="live-control-btn" id="live-speak-btn" onclick="toggleLiveSpeak()">
-                <span>🔊</span>
+                <span><i data-lucide="volume-2"></i></span>
                 <span>Hablar</span>
             </button>
             <button class="live-control-btn" id="live-test-btn" onclick="testMicrophone()" title="Probar micrófono">
-                <span>🎤</span>
+                <span><i data-lucide="mic"></i></span>
                 <span>Test</span>
             </button>
             <button class="live-control-btn" id="live-scripts-btn" onclick="showLiveScripts()">
-                <span>📜</span>
+                <span><i data-lucide="scroll"></i></span>
                 <span>Scripts</span>
             </button>
         </div>
@@ -3198,7 +3246,7 @@
     <!-- Auth Modal -->
     <div id="auth-modal" class="auth-modal">
         <div class="auth-content">
-            <div class="auth-icon">🛡️</div>
+            <div class="auth-icon"><i data-lucide="shield"></i></div>
             <h2 style="font-family: 'Orbitron', sans-serif; margin-bottom: 1rem;">AUTORIZACIÓN</h2>
             <p id="auth-msg" style="color: #ccc; margin-bottom: 1.5rem;"></p>
             <div class="auth-buttons">
@@ -3299,15 +3347,15 @@
             
             container.innerHTML = state.chats.map(chat => `
                 <div class="chat-item ${chat.session_id === state.currentSessionId ? 'active' : ''}" onclick="switchChat('${chat.session_id}')">
-                    <span class="chat-item-icon">${chat.session_id === state.currentSessionId ? '🔴' : '💬'}</span>
+                    <span class="chat-item-icon">${chat.session_id === state.currentSessionId ? '<i data-lucide="circle" class="fill-red"></i>' : '<i data-lucide="message-square"></i>'}</span>
                     <div class="chat-item-info">
                         <div class="chat-item-title">${chat.titulo || 'Chat'}</div>
                         <div class="chat-item-preview">${chat.ultimo_mensaje || 'Sin mensajes'}</div>
                         <div class="chat-item-time">${getRelativeTime(chat.fecha)}</div>
                     </div>
                     <div class="chat-item-actions">
-                        <button class="chat-action-btn" onclick="event.stopPropagation();renameChat('${chat.session_id}')" title="Renombrar">✏️</button>
-                        <button class="chat-action-btn delete" onclick="event.stopPropagation();deleteChat('${chat.session_id}')" title="Eliminar">🗑️</button>
+                        <button class="chat-action-btn" onclick="event.stopPropagation();renameChat('${chat.session_id}')" title="Renombrar"><i data-lucide="pencil"></i></button>
+                        <button class="chat-action-btn delete" onclick="event.stopPropagation();deleteChat('${chat.session_id}')" title="Eliminar"><i data-lucide="trash-2"></i></button>
                     </div>
                 </div>
             `).join("");
@@ -3346,7 +3394,7 @@
             
             document.getElementById("chat-messages").innerHTML = `
                 <div class="message ares">
-                    <div class="message-avatar">🔴</div>
+                    <div class="message-avatar"><i data-lucide="circle" class="fill-red"></i></div>
                     <div class="message-content"><p>Salve. Nuevo chat iniciado. ¿En qué puedo ayudarte?</p></div>
                 </div>
             `;
@@ -3367,14 +3415,14 @@
                 if (mensajes.length === 0) {
                     container.innerHTML = `
                         <div class="message ares">
-                            <div class="message-avatar">🔴</div>
+                            <div class="message-avatar"><i data-lucide="circle" class="fill-red"></i></div>
                             <div class="message-content"><p>Salve. ¿En qué puedo ayudarte?</p></div>
                         </div>
                     `;
                 } else {
                     container.innerHTML = mensajes.map(msg => `
                         <div class="message ${msg.tipo}">
-                            <div class="message-avatar">${msg.tipo === 'ares' ? '🔴' : '👤'}</div>
+                            <div class="message-avatar">${msg.tipo === 'ares' ? '<i data-lucide="circle" class="fill-red"></i>' : '<i data-lucide="user"></i>'}</div>
                             <div class="message-content"><p>${msg.mensaje}</p></div>
                         </div>
                     `).join("");
@@ -3429,7 +3477,7 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> ${message}`;
+            toast.innerHTML = `<span>${type === 'success' ? '<i data-lucide="check-circle" class="text-green"></i>' : type === 'error' ? '<i data-lucide="x-circle" class="text-red"></i>' : '<i data-lucide="info" class="text-cyan"></i>'}</span> ${message}`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
@@ -5869,6 +5917,11 @@ Cuando el usuario pida algo que coincida con un trigger, ejecuta el script. Para
         document.addEventListener('DOMContentLoaded', () => {
             initChat();
             loadChats();
+            
+            // Initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
             
             // Vincular click del core al overlay
             const neuralCore = document.getElementById('ares-neural-core');
